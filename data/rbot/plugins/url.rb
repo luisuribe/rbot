@@ -13,7 +13,7 @@ class UrlPlugin < Plugin
     :default => 100, :validate => Proc.new{|v| v > 0},
     :desc => "Maximum number of urls to store. New urls replace oldest ones.")
   Config.register Config::IntegerValue.new('url.display_link_info',
-    :default => 0,
+    :default => 1,
     :desc => "Get the title of links pasted to the channel and display it (also tells if the link is broken or the site is down). Do it for at most this many links per line (set to 0 to disable)")
   Config.register Config::BooleanValue.new('url.auto_shorten',
     :default => false,
@@ -230,10 +230,14 @@ class UrlPlugin < Plugin
     end
   end
 
+  def uri_parser
+    @uri_parser ||= URI.const_defined?(:Parser) ? URI::Parser.new : URI
+  end
+
   def message(m)
     return if m.address?
 
-    escaped = URI.escape(m.message, OUR_UNSAFE)
+    escaped = uri_parser.escape(m.message, OUR_UNSAFE)
     urls = URI.extract(escaped, ['http', 'https'])
     return if urls.empty?
     Thread.new { handle_urls(m, :urls => urls) }
